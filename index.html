@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spelling Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f8ff;
+            overflow: hidden;
+            /* Prevents scroll during loading */
+        }
+
+        /* Loading screen styling */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #87cefa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            font-size: 2em;
+            color: #fff;
+        }
+
+        .container {
+            text-align: center;
+            max-width: 500px;
+            padding: 20px;
+            background-color: #fff8dc;
+            border-radius: 15px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        .progress {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            color: #555;
+        }
+
+        .prompt {
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            color: #333;
+            animation: fadeIn 1s ease-in-out;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .play-button {
+            font-size: 1.5em;
+            padding: 10px 20px;
+            background-color: #87cefa;
+            border: none;
+            border-radius: 10px;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .play-button:hover {
+            background-color: #1e90ff;
+        }
+
+        .voice-select {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            font-size: 1em;
+            padding: 5px;
+            border-radius: 5px;
+            outline: none;
+            border: 1px solid #ccc;
+        }
+
+        .word-input {
+            font-size: 2em;
+            padding: 10px;
+            width: 100%;
+            max-width: 400px;
+            border: 2px solid #87cefa;
+            border-radius: 10px;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .word-input:focus {
+            border-color: #1e90ff;
+            box-shadow: 0 0 10px rgba(30, 144, 255, 0.3);
+            animation: wiggle 0.1s ease-in-out;
+        }
+
+        /* Animation for input typing */
+        @keyframes wiggle {
+            0% {
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(-3px);
+            }
+
+            50% {
+                transform: translateX(3px);
+            }
+
+            75% {
+                transform: translateX(-2px);
+            }
+
+            100% {
+                transform: translateX(0);
+            }
+        }
+
+        /* Fade-in animation for prompt */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="loading-screen" id="loadingScreen">Loading...</div>
+
+    <div class="container">
+        <div class="progress">Word <span id="current-word">1</span> / <span id="total-words">30</span></div>
+        <div class="prompt">Please type the word you hear:</div>
+        <div class="controls">
+            <button class="play-button" onclick="playWord()">🔊 Play Word</button>
+            <select id="voiceSelect" class="voice-select">
+            </select>
+        </div>
+        <input type="text" id="wordInput" class="word-input" placeholder="Type here..." />
+    </div>
+
+    <script>
+        const synth = window.speechSynthesis;
+        /** @type {SpeechSynthesisVoice[]} */
+        let voices = [];
+
+        /**
+         * @return {Promise<SpeechSynthesisVoice[]>}
+         * */
+        function LoadVoices() {
+            voices = synth.getVoices().filter(voice => voice.lang === "en-US");
+            if (voices.length > 0) return Promise.resolve(voices);
+            return new Promise(r => {
+                window.speechSynthesis.onvoiceschanged = () => {
+                    window.speechSynthesis.onvoiceschanged = null;
+                    r(LoadVoices());
+                };
+            });
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i >= 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        const voiceSelect = document.getElementById("voiceSelect");
+        // Show the loading screen for 1 second
+        window.addEventListener('load', () => {
+            LoadVoices().then((voices) => {
+                for (let i = 0; i < voices.length; i++) {
+                    const option = document.createElement("option");
+                    option.textContent = `Voice (${i + 1})`;
+                    option.value = i;
+                    voiceSelect.appendChild(option);
+                }
+                document.getElementById('loadingScreen').style.display = 'none';
+            });
+        });
+
+        const words = ["after", "again", "always", "around", "bare", "bath", "bear", "beast", "because", "before", "between", "blanket", "boat", "bright", "cannot", "catch", "change", "cough", "could", "count", "cover", "dish", "dock", "does", "drift", "each", "eight", "eleven", "excellent", "fetch", "fight", "found", "friend", "gaze", "glint", "goat", "grins", "hash", "hire", "house", "hurt", "laugh", "little", "loud", "lunch", "most", "mouth", "much", "night", "nine", "noon", "oak", "obey", "other", "our", "out", "person", "pool", "pretend", "promise", "rafter", "rally", "read", "right", "rinse", "seven", "six", "slumber", "sound", "state", "their", "thing", "three", "ton", "treat", "would", "write"];
+        shuffleArray(words);
+        const totalWords = words.length;
+        let currentWordIndex = 0;
+
+        document.getElementById('total-words').textContent = totalWords;
+
+        const wordInput = document.getElementById('wordInput');
+        // Update progress as user submits or types
+        wordInput.addEventListener('input', (event) => {
+            event.target.style.borderColor = event.target.value ? '#32cd32' : '#87cefa';
+        });
+
+        function nextWord() {
+            currentWordIndex++;
+            wordInput.value = '';
+            if (currentWordIndex < totalWords) {
+                document.getElementById('current-word').textContent = currentWordIndex + 1;
+
+                playWord();
+            } else {
+                alert("Test Complete! Great job!");
+            }
+        }
+
+        // Simulate next word on Enter key press
+        wordInput.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') {
+                const currentWord = words[currentWordIndex];
+                const testSolution = this.value;
+                if (currentWord.localeCompare(testSolution, 'en', {
+                    'sensitivity': 'base'
+                }) === 0) {
+                    nextWord();
+                } else {
+                    alert(`word doesn't match try Again`);
+                }
+            }
+        });
+
+        // Placeholder for playWord function
+        function playWord() {
+            if (currentWordIndex >= totalWords) return;
+
+            const currentWord = words[currentWordIndex];
+
+            const utterThis = new SpeechSynthesisUtterance(currentWord);
+            utterThis.voice = voices[voiceSelect.value];
+            synth.speak(utterThis);
+
+            wordInput.focus();
+        }
+    </script>
+</body>
+
+</html>
