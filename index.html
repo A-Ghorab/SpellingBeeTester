@@ -167,13 +167,18 @@
          * @return {Promise<SpeechSynthesisVoice[]>}
          * */
         function LoadVoices() {
-            voices = synth.getVoices().filter(voice => voice.lang === "en-US");
+            voices = synth.getVoices().filter(voice => voice.lang === "en-US" || voice.lang === "en");
             if (voices.length > 0) return Promise.resolve(voices);
             return new Promise(r => {
                 window.speechSynthesis.onvoiceschanged = () => {
                     window.speechSynthesis.onvoiceschanged = null;
                     r(LoadVoices());
                 };
+
+                setTimeout(() => {
+                    // no voices found
+                    r(voices);
+                }, 500)
             });
         }
 
@@ -188,11 +193,18 @@
         // Show the loading screen for 1 second
         window.addEventListener('load', () => {
             LoadVoices().then((voices) => {
-                for (let i = 0; i < voices.length; i++) {
+                if (voices.length == 0) {
                     const option = document.createElement("option");
-                    option.textContent = `Voice (${i + 1})`;
-                    option.value = i;
+                    option.textContent = `No Voice Found`;
                     voiceSelect.appendChild(option);
+                }
+                else {
+                    for (let i = 0; i < voices.length; i++) {
+                        const option = document.createElement("option");
+                        option.textContent = `Voice (${i + 1})`;
+                        option.value = i;
+                        voiceSelect.appendChild(option);
+                    }
                 }
                 document.getElementById('loadingScreen').style.display = 'none';
             });
